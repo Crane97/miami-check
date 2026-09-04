@@ -37,6 +37,11 @@ function RevealLayer({ image, cursorX, cursorY }: RevealLayerProps) {
     const canvas = canvasRef.current
     if (!canvas) return
 
+    if (canvas.width === 0 || canvas.height === 0) {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
@@ -80,6 +85,10 @@ function RevealLayer({ image, cursorX, cursorY }: RevealLayerProps) {
           WebkitMaskImage: maskUrl ? `url(${maskUrl})` : 'none',
           maskSize: '100% 100%',
           WebkitMaskSize: '100% 100%',
+          maskRepeat: 'no-repeat',
+          WebkitMaskRepeat: 'no-repeat',
+          maskPosition: 'center',
+          WebkitMaskPosition: 'center',
         }}
       />
     </>
