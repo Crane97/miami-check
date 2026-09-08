@@ -22,25 +22,24 @@ const PLANS = [
   { id: 'wynwood', label: 'Street art y brunch en Wynwood' },
   { id: 'everglades', label: 'Airboat por los Everglades' },
   { id: 'cuban', label: 'Café cubano y croquetas en Little Havana' },
-  { id: 'boat', label: 'Salida en barco al atardecer' },
   { id: 'spa', label: 'Día de spa + piscina rooftop' },
 ] as const
 
 const SCENARIOS = [
   {
     id: 1,
-    title: 'Plan A',
-    text: 'Quedarnos en Londres, manta, series y “ya viajamos otro año”.',
+    title: 'Escenario 1',
+    text: 'Somos super amigos',
   },
   {
     id: 2,
-    title: 'Plan B',
-    text: 'Un finde “relajado” en Benidorm… y fingir que es Miami.',
+    title: 'Escenario 2',
+    text: 'Somos super amigos, pero ya nos veremos',
   },
   {
     id: 3,
-    title: 'Plan C',
-    text: 'Miami 2026. Sol, playa, Calle 8 y cero excusas.',
+    title: 'Escenario 3',
+    text: 'No necesita mas explicacion.',
   },
 ] as const
 
@@ -163,8 +162,11 @@ function HeroShell({
 }
 
 function primaryButtonClass(extra = '') {
-  return `bg-[#e8702a] hover:bg-[#d2611f] text-white text-sm font-medium px-7 py-3 rounded-full transition-all hover:scale-[1.03] active:scale-95 hover:shadow-lg hover:shadow-[#e8702a]/30 disabled:opacity-40 disabled:pointer-events-none disabled:hover:scale-100 ${extra}`
+  return `w-full sm:w-auto bg-[#e8702a] hover:bg-[#d2611f] text-white text-sm font-medium px-6 py-3.5 sm:px-7 sm:py-3 min-h-12 rounded-full transition-all hover:scale-[1.03] active:scale-95 hover:shadow-lg hover:shadow-[#e8702a]/30 disabled:opacity-40 disabled:pointer-events-none disabled:hover:scale-100 ${extra}`
 }
+
+const screenPad =
+  'h-full overflow-y-auto px-4 sm:px-5 pt-8 sm:pt-14 pb-[max(2rem,calc(env(safe-area-inset-bottom)+1.5rem))] flex flex-col items-center'
 
 function formatSkyDate(iso: string) {
   const [y, m, d] = iso.split('-')
@@ -246,10 +248,11 @@ function RunawayButton({
   const [jumps, setJumps] = useState(0)
 
   useEffect(() => {
-    const w = Math.min(320, window.innerWidth - 40)
+    const w = Math.min(280, window.innerWidth - 32)
+    const maxY = window.innerHeight * 0.48
     setPos({
-      x: Math.max(16, window.innerWidth / 2 - w / 2 + (Math.random() * 100 - 50)),
-      y: Math.max(140, window.innerHeight * 0.28 + initialOffsetY),
+      x: Math.max(16, window.innerWidth / 2 - w / 2 + (Math.random() * 60 - 30)),
+      y: Math.min(maxY, Math.max(120, window.innerHeight * 0.24 + initialOffsetY)),
       ready: true,
     })
   }, [initialOffsetY])
@@ -261,8 +264,10 @@ function RunawayButton({
     const bw = rect.width
     const bh = rect.height
     const pad = 16
+    const minY = 100
+    const maxY = window.innerHeight * 0.52 - bh
     let nextX = pad + Math.random() * Math.max(1, window.innerWidth - bw - pad * 2)
-    let nextY = 100 + Math.random() * Math.max(1, window.innerHeight - bh - 140)
+    let nextY = minY + Math.random() * Math.max(1, maxY - minY)
 
     // Empujar lejos del cursor
     const cx = nextX + bw / 2
@@ -273,11 +278,11 @@ function RunawayButton({
       const angle = Math.atan2(dy || 1, dx || 1)
       nextX = Math.min(
         window.innerWidth - bw - pad,
-        Math.max(pad, clientX + Math.cos(angle) * 220 - bw / 2),
+        Math.max(pad, clientX + Math.cos(angle) * 180 - bw / 2),
       )
       nextY = Math.min(
-        window.innerHeight - bh - pad,
-        Math.max(100, clientY + Math.sin(angle) * 220 - bh / 2),
+        maxY,
+        Math.max(minY, clientY + Math.sin(angle) * 180 - bh / 2),
       )
     }
 
@@ -305,7 +310,7 @@ function RunawayButton({
         e.preventDefault()
         flee(e.clientX, e.clientY)
       }}
-      className="fixed z-[60] max-w-[min(320px,calc(100vw-32px))] text-left px-5 py-4 rounded-2xl border border-white/25 bg-white/10 backdrop-blur-md text-white transition-all duration-200 ease-out shadow-lg"
+      className="fixed z-[60] max-w-[min(280px,calc(100vw-32px))] text-left px-4 py-3.5 sm:px-5 sm:py-4 rounded-2xl border border-white/25 bg-white/10 backdrop-blur-md text-white transition-all duration-200 ease-out shadow-lg"
       style={{
         left: pos.x,
         top: pos.y,
@@ -396,63 +401,64 @@ export default function App() {
 
   return (
     <div
-      className="min-h-screen bg-black tracking-[-0.02em]"
+      className="h-full bg-black tracking-[-0.02em]"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       {step === 'hero' && (
         <HeroShell cursorPos={cursorPos} animateZoom>
-          <div className="absolute top-[14%] left-0 right-0 flex flex-col items-center text-center px-5 pointer-events-none">
-            <h1 className="text-white leading-[0.95]">
-              <span
-                className="block font-playfair italic font-normal text-5xl sm:text-7xl md:text-8xl hero-anim hero-reveal"
-                style={{ letterSpacing: '-0.05em', animationDelay: '0.25s' }}
-              >
-                Viaje a Miami
-              </span>
-              <span
-                className="block font-normal text-5xl sm:text-7xl md:text-8xl -mt-1 hero-anim hero-reveal"
-                style={{ letterSpacing: '-0.08em', animationDelay: '0.42s' }}
-              >
-                2026
-              </span>
-            </h1>
-          </div>
+          <div className="h-full flex flex-col items-center justify-between px-5 pt-[max(4.5rem,12vh)] pb-[max(1.5rem,calc(env(safe-area-inset-bottom)+1.25rem))] sm:block sm:p-0">
+            <div className="flex flex-col items-center text-center pointer-events-none sm:absolute sm:top-[14%] sm:left-0 sm:right-0 sm:px-5">
+              <h1 className="text-white leading-[0.95]">
+                <span
+                  className="block font-playfair italic font-normal text-[clamp(2.35rem,10vw,6rem)] hero-anim hero-reveal"
+                  style={{ letterSpacing: '-0.05em', animationDelay: '0.25s' }}
+                >
+                  Viaje a Miami
+                </span>
+                <span
+                  className="block font-normal text-[clamp(2.35rem,10vw,6rem)] -mt-1 hero-anim hero-reveal"
+                  style={{ letterSpacing: '-0.08em', animationDelay: '0.42s' }}
+                >
+                  2026
+                </span>
+              </h1>
+            </div>
 
-          <div
-            className="absolute bottom-10 sm:bottom-24 left-5 right-5 sm:left-auto sm:right-10 md:right-14 max-w-full sm:max-w-[280px] flex flex-col items-start gap-4 sm:gap-5 hero-anim hero-fade"
-            style={{ animationDelay: '0.7s' }}
-          >
-            <p className="text-xs sm:text-sm text-white/80 leading-relaxed">
-              Una propuesta con sol, playa y planes absurdamente buenos. Desliza
-              el cursor para ver Miami de día… y pulsa cuando estés lista.
-            </p>
-            <button
-              type="button"
-              className={primaryButtonClass()}
-              onClick={() => setStep('plans')}
+            <div
+              className="w-full max-w-sm mx-auto flex flex-col items-center text-center gap-3 sm:absolute sm:bottom-24 sm:right-10 md:right-14 sm:mx-0 sm:max-w-[280px] sm:items-start sm:text-left sm:gap-5 hero-anim hero-fade"
+              style={{ animationDelay: '0.7s' }}
             >
-              Vuelos a Miami
-            </button>
+              <p className="text-sm text-white/80 leading-relaxed">
+                Mas facil... imposible
+              </p>
+              <button
+                type="button"
+                className={primaryButtonClass()}
+                onClick={() => setStep('plans')}
+              >
+                Empezar a planear el viaje a Miami
+              </button>
+            </div>
           </div>
         </HeroShell>
       )}
 
       {step === 'plans' && (
         <HeroShell cursorPos={cursorPos}>
-          <div className="h-full overflow-y-auto px-5 py-10 sm:py-14 flex flex-col items-center">
+          <div className={screenPad}>
             <div className="w-full max-w-2xl hero-anim hero-reveal" style={{ animationDelay: '0.1s' }}>
               <p className="text-white/60 text-xs uppercase tracking-[0.2em] mb-3">
-                Paso 1 · Selección múltiple
+                Selección múltiple
               </p>
-              <h2 className="text-white font-playfair italic text-4xl sm:text-5xl leading-tight mb-3">
-                ¿Qué hacemos en Miami?
+              <h2 className="text-white font-playfair italic text-3xl sm:text-5xl leading-tight mb-3">
+                ¿Qué planeamos para Miami?
               </h2>
-              <p className="text-white/75 text-sm sm:text-base mb-8 max-w-lg">
+              <p className="text-white/75 text-sm sm:text-base mb-6 sm:mb-8 max-w-lg">
                 Elige todos los planes que te apetezcan. Cuantos más marques, más
                 difícil será decir que no.
               </p>
 
-              <div className="flex flex-col gap-2.5 mb-10">
+              <div className="flex flex-col gap-2 sm:gap-2.5 mb-8 sm:mb-10">
                 {PLANS.map((plan) => {
                   const on = selectedPlans.includes(plan.id)
                   return (
@@ -460,13 +466,13 @@ export default function App() {
                       key={plan.id}
                       type="button"
                       onClick={() => togglePlan(plan.id)}
-                      className={`w-full text-left px-5 py-3.5 rounded-full border transition-all ${
+                      className={`w-full min-h-12 text-left px-4 sm:px-5 py-3 sm:py-3.5 rounded-full border transition-all ${
                         on
                           ? 'bg-white text-gray-900 border-white'
                           : 'bg-white/10 text-white border-white/25 hover:bg-white/20'
                       }`}
                     >
-                      <span className="text-sm font-medium">{plan.label}</span>
+                      <span className="text-sm font-medium leading-snug">{plan.label}</span>
                     </button>
                   )
                 })}
@@ -487,16 +493,16 @@ export default function App() {
 
       {step === 'scenarios' && (
         <HeroShell cursorPos={cursorPos}>
-          <div className="h-full overflow-hidden px-5 py-10 sm:py-14 flex flex-col items-center relative">
-            <div className="w-full max-w-xl text-center hero-anim hero-reveal mb-10" style={{ animationDelay: '0.1s' }}>
+          <div className="h-full overflow-hidden px-4 sm:px-5 pt-8 sm:pt-14 pb-2 flex flex-col items-center relative">
+            <div className="w-full max-w-xl text-center hero-anim hero-reveal mb-6 sm:mb-10" style={{ animationDelay: '0.1s' }}>
               <p className="text-white/60 text-xs uppercase tracking-[0.2em] mb-3">
-                Paso 2 · Elige con cuidado
+                Elige con cuidado
               </p>
-              <h2 className="text-white font-playfair italic text-4xl sm:text-5xl leading-tight mb-3">
+              <h2 className="text-white font-playfair italic text-3xl sm:text-5xl leading-tight mb-3">
                 Tres escenarios
               </h2>
               <p className="text-white/75 text-sm sm:text-base">
-                Solo uno es el correcto. Los otros… tienen vida propia.
+                Elige el que mas te guste, o el que puedas...
               </p>
             </div>
 
@@ -508,17 +514,17 @@ export default function App() {
             <RunawayButton
               label={SCENARIOS[1].title}
               subtitle={SCENARIOS[1].text}
-              initialOffsetY={120}
+              initialOffsetY={72}
             />
 
-            <div className="mt-auto mb-8 w-full max-w-md hero-anim hero-fade" style={{ animationDelay: '0.35s' }}>
+            <div className="mt-auto mb-[max(1.25rem,env(safe-area-inset-bottom))] w-full max-w-md hero-anim hero-fade" style={{ animationDelay: '0.35s' }}>
               <button
                 type="button"
                 onClick={() => {
                   setScenario(SCENARIOS[2].text)
                   setStep('dates')
                 }}
-                className="w-full text-left px-6 py-5 rounded-2xl border border-[#e8702a]/70 bg-[#e8702a] text-white shadow-lg shadow-[#e8702a]/25 hover:bg-[#d2611f] transition-all hover:scale-[1.02] active:scale-95"
+                className="w-full text-left px-5 py-4 sm:px-6 sm:py-5 rounded-2xl border border-[#e8702a]/70 bg-[#e8702a] text-white shadow-lg shadow-[#e8702a]/25 hover:bg-[#d2611f] transition-all hover:scale-[1.02] active:scale-95"
               >
                 <span className="block text-xs uppercase tracking-wider text-white/80 mb-1">
                   {SCENARIOS[2].title} · el bueno
@@ -534,18 +540,16 @@ export default function App() {
 
       {step === 'dates' && (
         <HeroShell cursorPos={cursorPos}>
-          <div className="h-full overflow-y-auto px-5 py-10 sm:py-14 flex flex-col items-center">
+          <div className={screenPad}>
             <div className="w-full max-w-xl hero-anim hero-reveal" style={{ animationDelay: '0.1s' }}>
               <p className="text-white/60 text-xs uppercase tracking-[0.2em] mb-3">
-                Paso 3 · Fechas
+                Fechas
               </p>
-              <h2 className="text-white font-playfair italic text-4xl sm:text-5xl leading-tight mb-3">
+              <h2 className="text-white font-playfair italic text-3xl sm:text-5xl leading-tight mb-3">
                 ¿Cuándo volamos?
               </h2>
-              <p className="text-white/75 text-sm sm:text-base mb-8">
-                Elige ida y vuelta entre el 16 y el 25 de octubre de 2026.
-                Al continuar te llevo a Skyscanner (Londres ↔ Miami, directos) y
-                mando las respuestas a {EMAIL_TO}.
+              <p className="text-white/75 text-sm sm:text-base mb-6 sm:mb-8">
+                Elige las fechas para el viaje... En cuantos mas dias, mejor :)
               </p>
 
               <div className="mb-6">
@@ -556,7 +560,7 @@ export default function App() {
                       key={`out-${d.iso}`}
                       type="button"
                       onClick={() => setOutbound(d.iso)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      className={`min-h-11 min-w-[4.5rem] px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
                         outbound === d.iso
                           ? 'bg-white text-gray-900'
                           : 'bg-white/10 text-white border border-white/25 hover:bg-white/20'
@@ -568,7 +572,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="mb-10">
+              <div className="mb-8 sm:mb-10">
                 <p className="text-white text-sm font-medium mb-3">Vuelta</p>
                 <div className="flex flex-wrap gap-2">
                   {DATE_OPTIONS.map((d) => (
@@ -576,7 +580,7 @@ export default function App() {
                       key={`in-${d.iso}`}
                       type="button"
                       onClick={() => setInbound(d.iso)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      className={`min-h-11 min-w-[4.5rem] px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
                         inbound === d.iso
                           ? 'bg-white text-gray-900'
                           : 'bg-white/10 text-white border border-white/25 hover:bg-white/20'
@@ -598,7 +602,7 @@ export default function App() {
                 disabled={submitting}
                 onClick={onFinish}
               >
-                {submitting ? 'Preparando magia…' : 'Continuar a Skyscanner'}
+                {submitting ? 'Preparando magia…' : 'Continuar...'}
               </button>
             </div>
           </div>

@@ -6,6 +6,25 @@
   font-family: 'Inter', sans-serif;
 }
 
+html,
+body,
+#root {
+  height: 100%;
+  height: 100dvh;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .font-playfair {
   font-family: 'Playfair Display', serif;
 }
