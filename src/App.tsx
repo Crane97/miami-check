@@ -503,10 +503,10 @@ export default function App() {
                 Fechas
               </p>
               <h2 className="text-white font-playfair italic text-3xl sm:text-5xl leading-tight mb-3">
-                ¿Cuándo volamos?
+                Elige bien las fechas?
               </h2>
               <p className="text-white/75 text-sm sm:text-base mb-6 sm:mb-8">
-                Elige las fechas para el viaje... En cuantos mas dias, mejor :)
+                Cuantos mas dias, mejor :)
               </p>
 
               <div className="mb-6">
