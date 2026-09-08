@@ -2,7 +2,6 @@ import {
   useEffect,
   useRef,
   useState,
-  type MouseEvent as ReactMouseEvent,
   type ReactNode,
 } from 'react'
 import bgDay from './assets/bg-image-1.png'
@@ -10,7 +9,7 @@ import bgNight from './assets/bg-image-2.png'
 
 const BG_BASE = bgNight
 const BG_REVEAL = bgDay
-const SPOTLIGHT_R = 260
+const SPOTLIGHT_R = 420
 const EMAIL_TO = 'jorge@macdiego.com'
 
 const PLANS = [
@@ -46,41 +45,95 @@ const SCENARIOS = [
 type Step = 'hero' | 'plans' | 'scenarios' | 'dates'
 type PlanId = (typeof PLANS)[number]['id']
 
-type RevealLayerProps = {
-  image: string
-  cursorX: number
-  cursorY: number
-}
+function RevealLayer({ image }: { image: string }) {
+  const imgRef = useRef<HTMLImageElement>(null)
 
-function RevealLayer({ image, cursorX, cursorY }: RevealLayerProps) {
-  if (cursorX < -50 || cursorY < -50) return null
+  useEffect(() => {
+    const img = imgRef.current
+    if (!img) return
 
-  const mask = `radial-gradient(circle ${SPOTLIGHT_R}px at ${cursorX}px ${cursorY}px, #000 0%, #000 40%, rgba(0,0,0,0.4) 70%, transparent 100%)`
+    const target = {
+      x: window.innerWidth * 0.5,
+      y: window.innerHeight * 0.42,
+    }
+    const current = { ...target }
+    let raf = 0
+
+    const apply = () => {
+      const mask = `radial-gradient(circle ${SPOTLIGHT_R}px at ${current.x}px ${current.y}px, #000 0%, #000 45%, rgba(0,0,0,0.35) 75%, transparent 100%)`
+      img.style.maskImage = mask
+      img.style.webkitMaskImage = mask
+    }
+
+    apply()
+
+    const follow = (x: number, y: number) => {
+      target.x = x
+      target.y = y
+      if (!raf) raf = requestAnimationFrame(tick)
+    }
+
+    const tick = () => {
+      const dx = target.x - current.x
+      const dy = target.y - current.y
+      if (Math.abs(dx) < 0.2 && Math.abs(dy) < 0.2) {
+        current.x = target.x
+        current.y = target.y
+        apply()
+        raf = 0
+        return
+      }
+      current.x += dx * 0.16
+      current.y += dy * 0.16
+      apply()
+      raf = requestAnimationFrame(tick)
+    }
+
+    const onPointer = (e: PointerEvent) => {
+      follow(e.clientX, e.clientY)
+    }
+
+    const onTouch = (e: TouchEvent) => {
+      const t = e.touches[0]
+      if (!t) return
+      follow(t.clientX, t.clientY)
+    }
+
+    window.addEventListener('pointerdown', onPointer, { passive: true })
+    window.addEventListener('pointermove', onPointer, { passive: true })
+    window.addEventListener('touchstart', onTouch, { passive: true })
+    window.addEventListener('touchmove', onTouch, { passive: true })
+
+    return () => {
+      window.removeEventListener('pointerdown', onPointer)
+      window.removeEventListener('pointermove', onPointer)
+      window.removeEventListener('touchstart', onTouch)
+      window.removeEventListener('touchmove', onTouch)
+      cancelAnimationFrame(raf)
+    }
+  }, [])
 
   return (
     <img
+      ref={imgRef}
       src={image}
       alt=""
       draggable={false}
-      className="absolute inset-0 z-30 h-full w-full object-cover pointer-events-none"
+      className="hero-bg absolute inset-0 z-30 h-full w-full object-cover pointer-events-none"
       style={{
-        maskImage: mask,
-        WebkitMaskImage: mask,
+        maskImage: `radial-gradient(circle ${SPOTLIGHT_R}px at 50% 42%, #000 0%, #000 45%, rgba(0,0,0,0.35) 75%, transparent 100%)`,
+        WebkitMaskImage: `radial-gradient(circle ${SPOTLIGHT_R}px at 50% 42%, #000 0%, #000 45%, rgba(0,0,0,0.35) 75%, transparent 100%)`,
       }}
     />
   )
 }
 
 function HeroShell({
-  cursorPos,
   children,
   animateZoom = false,
-  enableReveal = false,
 }: {
-  cursorPos: { x: number; y: number }
   children: ReactNode
   animateZoom?: boolean
-  enableReveal?: boolean
 }) {
   return (
     <section className="relative w-full overflow-hidden bg-black h-svh">
@@ -91,13 +144,7 @@ function HeroShell({
         decoding="async"
         className={`hero-bg absolute inset-0 z-10 h-full w-full object-cover ${animateZoom ? 'hero-zoom' : ''}`}
       />
-      {enableReveal && (
-        <RevealLayer
-          image={BG_REVEAL}
-          cursorX={cursorPos.x}
-          cursorY={cursorPos.y}
-        />
-      )}
+      <RevealLayer image={BG_REVEAL} />
       <div className="absolute inset-0 z-40 bg-black/35 pointer-events-none" />
       <div className="relative z-50 h-full">{children}</div>
     </section>
@@ -233,7 +280,7 @@ function RunawayButton({
     setJumps((n) => n + 1)
   }
 
-  const onMove = (e: ReactMouseEvent<HTMLButtonElement>) => {
+  const onMove = (e: { clientX: number; clientY: number }) => {
     flee(e.clientX, e.clientY)
   }
 
@@ -243,8 +290,8 @@ function RunawayButton({
     <button
       ref={btnRef}
       type="button"
-      onMouseEnter={onMove}
-      onMouseMove={onMove}
+      onPointerEnter={onMove}
+      onPointerMove={onMove}
       onFocus={(e) => {
         e.target.blur()
         flee(window.innerWidth / 2, window.innerHeight / 2)
@@ -275,11 +322,6 @@ const DATE_OPTIONS = Array.from({ length: 10 }, (_, i) => {
 })
 
 export default function App() {
-  const mouse = useRef({ x: -999, y: -999 })
-  const smooth = useRef({ x: -999, y: -999 })
-  const rafRef = useRef<number>(0)
-  const [cursorPos, setCursorPos] = useState({ x: -999, y: -999 })
-
   const [step, setStep] = useState<Step>('hero')
   const [selectedPlans, setSelectedPlans] = useState<PlanId[]>([])
   const [scenario, setScenario] = useState<string>('')
@@ -287,46 +329,6 @@ export default function App() {
   const [inbound, setInbound] = useState('2026-10-25')
   const [submitting, setSubmitting] = useState(false)
   const [submitNote, setSubmitNote] = useState('')
-  const [enableReveal, setEnableReveal] = useState(false)
-
-  useEffect(() => {
-    const mq = window.matchMedia('(hover: hover) and (pointer: fine)')
-    const sync = () => setEnableReveal(mq.matches)
-    sync()
-    mq.addEventListener('change', sync)
-    return () => mq.removeEventListener('change', sync)
-  }, [])
-
-  useEffect(() => {
-    if (!enableReveal) return
-
-    const onMove = (e: MouseEvent) => {
-      mouse.current.x = e.clientX
-      mouse.current.y = e.clientY
-    }
-
-    const tick = () => {
-      const nx = smooth.current.x + (mouse.current.x - smooth.current.x) * 0.1
-      const ny = smooth.current.y + (mouse.current.y - smooth.current.y) * 0.1
-      if (
-        Math.abs(nx - smooth.current.x) > 0.05 ||
-        Math.abs(ny - smooth.current.y) > 0.05
-      ) {
-        smooth.current.x = nx
-        smooth.current.y = ny
-        setCursorPos({ x: nx, y: ny })
-      }
-      rafRef.current = requestAnimationFrame(tick)
-    }
-
-    window.addEventListener('mousemove', onMove)
-    rafRef.current = requestAnimationFrame(tick)
-
-    return () => {
-      window.removeEventListener('mousemove', onMove)
-      cancelAnimationFrame(rafRef.current)
-    }
-  }, [enableReveal])
 
   const togglePlan = (id: PlanId) => {
     setSelectedPlans((prev) =>
@@ -365,11 +367,7 @@ export default function App() {
       className="h-full bg-black tracking-[-0.02em]"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
-      <HeroShell
-        cursorPos={cursorPos}
-        animateZoom={step === 'hero'}
-        enableReveal={enableReveal}
-      >
+      <HeroShell animateZoom={step === 'hero'}>
       {step === 'hero' && (
           <div className="h-full flex flex-col items-center justify-between px-5 pt-[max(4.5rem,12vh)] pb-[max(1.5rem,calc(env(safe-area-inset-bottom)+1.25rem))] sm:block sm:p-0">
             <div className="flex flex-col items-center text-center pointer-events-none sm:absolute sm:top-[14%] sm:left-0 sm:right-0 sm:px-5">
