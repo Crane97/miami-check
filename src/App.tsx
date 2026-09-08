@@ -53,82 +53,21 @@ type RevealLayerProps = {
 }
 
 function RevealLayer({ image, cursorX, cursorY }: RevealLayerProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [maskUrl, setMaskUrl] = useState('')
+  if (cursorX < -50 || cursorY < -50) return null
 
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const resize = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-    }
-
-    resize()
-    window.addEventListener('resize', resize)
-    return () => window.removeEventListener('resize', resize)
-  }, [])
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    if (canvas.width === 0 || canvas.height === 0) {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-    }
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-    const gradient = ctx.createRadialGradient(
-      cursorX,
-      cursorY,
-      0,
-      cursorX,
-      cursorY,
-      SPOTLIGHT_R,
-    )
-    gradient.addColorStop(0, 'rgba(255,255,255,1)')
-    gradient.addColorStop(0.4, 'rgba(255,255,255,1)')
-    gradient.addColorStop(0.6, 'rgba(255,255,255,0.75)')
-    gradient.addColorStop(0.75, 'rgba(255,255,255,0.4)')
-    gradient.addColorStop(0.88, 'rgba(255,255,255,0.12)')
-    gradient.addColorStop(1, 'rgba(255,255,255,0)')
-
-    ctx.fillStyle = gradient
-    ctx.beginPath()
-    ctx.arc(cursorX, cursorY, SPOTLIGHT_R, 0, Math.PI * 2)
-    ctx.fill()
-
-    setMaskUrl(canvas.toDataURL())
-  }, [cursorX, cursorY])
+  const mask = `radial-gradient(circle ${SPOTLIGHT_R}px at ${cursorX}px ${cursorY}px, #000 0%, #000 40%, rgba(0,0,0,0.4) 70%, transparent 100%)`
 
   return (
-    <>
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 pointer-events-none"
-        style={{ display: 'none' }}
-      />
-      <div
-        className="absolute inset-0 bg-center bg-cover bg-no-repeat z-30 pointer-events-none"
-        style={{
-          backgroundImage: `url(${image})`,
-          maskImage: maskUrl ? `url(${maskUrl})` : 'none',
-          WebkitMaskImage: maskUrl ? `url(${maskUrl})` : 'none',
-          maskSize: '100% 100%',
-          WebkitMaskSize: '100% 100%',
-          maskRepeat: 'no-repeat',
-          WebkitMaskRepeat: 'no-repeat',
-          maskPosition: 'center',
-          WebkitMaskPosition: 'center',
-        }}
-      />
-    </>
+    <img
+      src={image}
+      alt=""
+      draggable={false}
+      className="absolute inset-0 z-30 h-full w-full object-cover pointer-events-none"
+      style={{
+        maskImage: mask,
+        WebkitMaskImage: mask,
+      }}
+    />
   )
 }
 
@@ -136,25 +75,29 @@ function HeroShell({
   cursorPos,
   children,
   animateZoom = false,
+  enableReveal = false,
 }: {
   cursorPos: { x: number; y: number }
   children: ReactNode
   animateZoom?: boolean
+  enableReveal?: boolean
 }) {
   return (
-    <section
-      className="relative w-full overflow-hidden h-screen bg-black"
-      style={{ height: '100dvh' }}
-    >
-      <div
-        className={`absolute inset-0 bg-center bg-cover bg-no-repeat z-10 ${animateZoom ? 'hero-zoom' : ''}`}
-        style={{ backgroundImage: `url(${BG_BASE})` }}
+    <section className="relative w-full overflow-hidden bg-black h-svh">
+      <img
+        src={BG_BASE}
+        alt=""
+        draggable={false}
+        decoding="async"
+        className={`hero-bg absolute inset-0 z-10 h-full w-full object-cover ${animateZoom ? 'hero-zoom' : ''}`}
       />
-      <RevealLayer
-        image={BG_REVEAL}
-        cursorX={cursorPos.x}
-        cursorY={cursorPos.y}
-      />
+      {enableReveal && (
+        <RevealLayer
+          image={BG_REVEAL}
+          cursorX={cursorPos.x}
+          cursorY={cursorPos.y}
+        />
+      )}
       <div className="absolute inset-0 z-40 bg-black/35 pointer-events-none" />
       <div className="relative z-50 h-full">{children}</div>
     </section>
@@ -344,17 +287,35 @@ export default function App() {
   const [inbound, setInbound] = useState('2026-10-25')
   const [submitting, setSubmitting] = useState(false)
   const [submitNote, setSubmitNote] = useState('')
+  const [enableReveal, setEnableReveal] = useState(false)
 
   useEffect(() => {
+    const mq = window.matchMedia('(hover: hover) and (pointer: fine)')
+    const sync = () => setEnableReveal(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  useEffect(() => {
+    if (!enableReveal) return
+
     const onMove = (e: MouseEvent) => {
       mouse.current.x = e.clientX
       mouse.current.y = e.clientY
     }
 
     const tick = () => {
-      smooth.current.x += (mouse.current.x - smooth.current.x) * 0.1
-      smooth.current.y += (mouse.current.y - smooth.current.y) * 0.1
-      setCursorPos({ x: smooth.current.x, y: smooth.current.y })
+      const nx = smooth.current.x + (mouse.current.x - smooth.current.x) * 0.1
+      const ny = smooth.current.y + (mouse.current.y - smooth.current.y) * 0.1
+      if (
+        Math.abs(nx - smooth.current.x) > 0.05 ||
+        Math.abs(ny - smooth.current.y) > 0.05
+      ) {
+        smooth.current.x = nx
+        smooth.current.y = ny
+        setCursorPos({ x: nx, y: ny })
+      }
       rafRef.current = requestAnimationFrame(tick)
     }
 
@@ -365,7 +326,7 @@ export default function App() {
       window.removeEventListener('mousemove', onMove)
       cancelAnimationFrame(rafRef.current)
     }
-  }, [])
+  }, [enableReveal])
 
   const togglePlan = (id: PlanId) => {
     setSelectedPlans((prev) =>
@@ -404,8 +365,12 @@ export default function App() {
       className="h-full bg-black tracking-[-0.02em]"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
+      <HeroShell
+        cursorPos={cursorPos}
+        animateZoom={step === 'hero'}
+        enableReveal={enableReveal}
+      >
       {step === 'hero' && (
-        <HeroShell cursorPos={cursorPos} animateZoom>
           <div className="h-full flex flex-col items-center justify-between px-5 pt-[max(4.5rem,12vh)] pb-[max(1.5rem,calc(env(safe-area-inset-bottom)+1.25rem))] sm:block sm:p-0">
             <div className="flex flex-col items-center text-center pointer-events-none sm:absolute sm:top-[14%] sm:left-0 sm:right-0 sm:px-5">
               <h1 className="text-white leading-[0.95]">
@@ -440,11 +405,9 @@ export default function App() {
               </button>
             </div>
           </div>
-        </HeroShell>
       )}
 
       {step === 'plans' && (
-        <HeroShell cursorPos={cursorPos}>
           <div className={screenPad}>
             <div className="w-full max-w-2xl hero-anim hero-reveal" style={{ animationDelay: '0.1s' }}>
               <p className="text-white/60 text-xs uppercase tracking-[0.2em] mb-3">
@@ -488,11 +451,9 @@ export default function App() {
               </button>
             </div>
           </div>
-        </HeroShell>
       )}
 
       {step === 'scenarios' && (
-        <HeroShell cursorPos={cursorPos}>
           <div className="h-full overflow-hidden px-4 sm:px-5 pt-8 sm:pt-14 pb-2 flex flex-col items-center relative">
             <div className="w-full max-w-xl text-center hero-anim hero-reveal mb-6 sm:mb-10" style={{ animationDelay: '0.1s' }}>
               <p className="text-white/60 text-xs uppercase tracking-[0.2em] mb-3">
@@ -535,11 +496,9 @@ export default function App() {
               </button>
             </div>
           </div>
-        </HeroShell>
       )}
 
       {step === 'dates' && (
-        <HeroShell cursorPos={cursorPos}>
           <div className={screenPad}>
             <div className="w-full max-w-xl hero-anim hero-reveal" style={{ animationDelay: '0.1s' }}>
               <p className="text-white/60 text-xs uppercase tracking-[0.2em] mb-3">
@@ -606,8 +565,8 @@ export default function App() {
               </button>
             </div>
           </div>
-        </HeroShell>
       )}
+      </HeroShell>
     </div>
   )
 }
